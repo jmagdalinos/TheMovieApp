@@ -78,8 +78,9 @@ public class CatalogActivity extends AppCompatActivity implements MovieListAdapt
             @Override
             public void onRefresh() {
                 // Reload data
-                mMovies = null;
+                mMovies.clear();
                 mMovieListAdapter.setMovieData(null);
+                mMovieRecyclerView.setAdapter(mMovieListAdapter);
                 loadMovieData();
             }
         });
