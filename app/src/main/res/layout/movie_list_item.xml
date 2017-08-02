@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingTop="@dimen/list_item_padding_top_bottom"
+    android:paddingRight="@dimen/list_item_padding_left_right"
+    android:paddingLeft="@dimen/list_item_padding_left_right">
+
+    <ImageView
+        android:id="@+id/im_movie_poster"
+        android:layout_width="@dimen/list_image_width"
+        android:layout_height="@dimen/list_image_height"
+        android:src="@mipmap/ic_launcher"
+        android:background="@drawable/borders"/>
+</FrameLayout>

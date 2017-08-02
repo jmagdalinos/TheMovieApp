@@ -1,0 +1,31 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <!-- - - - - - - - - - - - - - -->
+    <!-- - - Detail activity - - - -->
+    <!-- - - - - - - - - - - - - - -->
+    <!-- - - - -  Titles - - - - - -->
+    <style name="detail_titles">
+        <item name="android:textColor">@color/colorAccent</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- - - -  Main Text  - - - - -->
+    <style name="detail_text">
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+
+    <!-- - - -  Rating Bar - - - - -->
+    <style name="detail_rating_Bar" parent="Theme.AppCompat">
+        <item name="colorControlNormal">@android:color/white</item>
+        <item name="colorControlActivated">@color/colorAccent</item>
+    </style>
+
+</resources>

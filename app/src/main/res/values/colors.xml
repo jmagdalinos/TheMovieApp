@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Theme colors -->
+    <color name="colorPrimary">#111111</color>
+    <color name="colorPrimaryDark">#000000</color>
+    <color name="colorAccent">#FFC400</color>
+
+    <!-- Gradient colors -->
+    <color name="gradient_start_color">#212121</color>
+    <color name="gradient_center_color">#424242</color>
+    <color name="gradient_end_color">#212121</color>
+</resources>

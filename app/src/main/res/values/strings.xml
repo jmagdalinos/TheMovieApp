@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name">The Movie App</string>
+    <string name="preferences_label">Preferences</string>
+    <string name="detail_label">Movie details</string>
+
+    <!-- - - - - -  - - - -->
+    <!--      Menus       -->
+    <!-- - - - - -  - - - -->
+    <string name="action_preferences">Preferences</string>
+
+    <!-- - - - - -  - - - -->
+    <!-- Error messages   -->
+    <!-- - - - - -  - - - -->
+    <string name="error_message_no_connection">No internet connection</string>
+    <string name="error_message_general">An error has occurred.\nPlease try again</string>
+
+    <!-- - - - - -  - - - -->
+    <!--   Preferences    -->
+    <!-- - - - - -  - - - -->
+    <string name="order_by_label">Order by:</string>
+    <string name="order_by_key">sort_by</string>
+    <string name="order_by_default">@string/order_by_popularity_value</string>
+    <!-- Options - labels -->
+    <string name="order_by_popularity_label">Popularity</string>
+    <string name="order_by_rating_label">Rating</string>
+    <!-- Options - values -->
+    <string name="order_by_popularity_value">popular</string>
+    <string name="order_by_rating_value">top_rated</string>
+
+    <!-- - - - - -  - - - -->
+    <!--  Detail layout   -->
+    <!-- - - - - -  - - - -->
+    <string name="detail_release_date">Release Date</string>
+    <string name="detail_genre">Genre</string>
+
+</resources>
