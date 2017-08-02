@@ -19,7 +19,7 @@
     <!-- - - - - -  - - - -->
     <string name="order_by_label">Order by:</string>
     <string name="order_by_key">sort_by</string>
-    <string name="order_by_default">@string/order_by_popularity_value</string>
+    <string name="order_by_default">@string/order_by_popularity_label</string>
     <!-- Options - labels -->
     <string name="order_by_popularity_label">Popularity</string>
     <string name="order_by_rating_label">Rating</string>
