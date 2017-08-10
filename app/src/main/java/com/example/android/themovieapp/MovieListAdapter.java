@@ -79,7 +79,8 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.Movi
         if (mMovies.get(position).getmPosterPathSmall().equals("no image")) {
             mPosterImageView.setImageResource(R.drawable.no_poster);
         } else {
-            Picasso.with(holder.mContext).load(mMovies.get(position).getmPosterPathSmall()).into(mPosterImageView);
+            Picasso.with(holder.mContext).load(mMovies.get(position).getmPosterPathLarge()).into
+                    (mPosterImageView);
         }
     }
 
@@ -91,6 +92,19 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.Movi
         // Check if the array list is empty
         if (mMovies == null) return 0;
         return mMovies.size();
+    }
+
+    /**
+     * The following two methods are overwritten to avoid duplication of views
+     */
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return position;
     }
 
     /**

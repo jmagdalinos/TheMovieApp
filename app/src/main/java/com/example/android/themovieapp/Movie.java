@@ -41,7 +41,7 @@ public class Movie implements Parcelable {
     private static final String FILE_SIZE_THUMBNAIL = "w185";
 
     /** File size ued to build the complete poster image path for large images */
-    private static final String FILE_SIZE_FULL = "w500";
+    private static final String FILE_SIZE_FULL = "w780";
 
 
     /**

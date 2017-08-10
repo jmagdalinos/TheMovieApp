@@ -9,9 +9,10 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.preference.PreferenceManager;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Display;
@@ -27,19 +28,23 @@ import com.example.android.themovieapp.Utilities.NetworkUtilities;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class CatalogActivity extends AppCompatActivity implements MovieListAdapter.MovieAdapterClickHandler{
+public class CatalogActivity extends AppCompatActivity implements MovieListAdapter
+        .MovieAdapterClickHandler, SharedPreferences.OnSharedPreferenceChangeListener {
 
     /** Tag to be used for logging messages */
-    private final static String TAG = CatalogActivity.class.getSimpleName();
+    private static final String TAG = CatalogActivity.class.getSimpleName();
+
+    /** Flag used to state whether a shared preference has changed or not */
+    private static boolean PREFERENCE_HAS_CHANGED = false;
 
     /** Key used when passing the current movie to the Detail Activity */
-    private final static String KEY_CURRENT_MOVIE = "current movie";
+    private static final String KEY_CURRENT_MOVIE = "current movie";
 
     /** Key for the Movies array list in saveInstanceState */
-    private final static String STATE_MOVIES = "movies";
+    private static final String STATE_MOVIES = "movies";
 
     /** Key for the recycler view layout list in saveInstanceState */
-    private final static String STATE_LAYOUT_MANAGER = "layout manager";
+    private static final String STATE_LAYOUT_MANAGER = "layout manager";
 
     /** Parcelable to be used when saving the recycler view state */
     private Parcelable mLayoutManagerSavedState = null;
@@ -67,6 +72,13 @@ public class CatalogActivity extends AppCompatActivity implements MovieListAdapt
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_catalog);
 
+        // Show home icon
+        ActionBar actionBar = this.getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayShowHomeEnabled(true);
+            actionBar.setIcon(R.mipmap.ic_launcher);
+        }
+
         // Find the error text view and the loading progress bar within the layout
         mErrorTextView = (TextView) findViewById(R.id.tv_errors);
         mLoadingProgress = (ProgressBar) findViewById(R.id.pb_loading_progress);
@@ -90,7 +102,7 @@ public class CatalogActivity extends AppCompatActivity implements MovieListAdapt
 
         // Create a Grid layout manager and assign it to the recycler view
         // The layout's columns are calculated with the calculateSpanCount method
-        GridLayoutManager layoutManager = new GridLayoutManager(CatalogActivity.this, calculateSpanCount());
+        GridLayoutManager layoutManager = new GridLayoutManager(CatalogActivity.this, 2);
         mMovieRecyclerView.setLayoutManager(layoutManager);
         // To improve performance, we make it so the child layout size in the RecyclerView does
         // not change
@@ -121,6 +133,30 @@ public class CatalogActivity extends AppCompatActivity implements MovieListAdapt
             mMovieRecyclerView.getLayoutManager().onRestoreInstanceState(mLayoutManagerSavedState);
             mLayoutManagerSavedState = null;
         }
+
+        // Register the shared preferences change listener
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .registerOnSharedPreferenceChangeListener(this);
+    }
+
+    /**
+     * Overwritten to check if there has been a preferences change
+     */
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (PREFERENCE_HAS_CHANGED) loadMovieData();
+    }
+
+    /**
+     * Overwritten to unregister the shared preferences listener
+     */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Register the shared preferences change listener
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -227,6 +263,15 @@ public class CatalogActivity extends AppCompatActivity implements MovieListAdapt
         int spanCount = (int) (finalDisplayWidth / totalPosterWidth);
 
         return spanCount;
+    }
+
+    /**
+     * This is called when a shared preference has changed. It changes the PREFERENCE_HAS_CHANGED
+     * flag to true
+     */
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        PREFERENCE_HAS_CHANGED = true;
     }
 
     /** AsyncTask class used to fetch data from the internet and return a list of movies */

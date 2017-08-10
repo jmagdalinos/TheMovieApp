@@ -27,7 +27,7 @@ public class NetworkUtilities {
     private final static String TAG = NetworkUtilities.class.getSimpleName();
 
     /** API Key used the movie db */
-    private static final String API_KEY = "YOUR KEY HERE!!!";
+    private static final String API_KEY = "YOUR API KEY HERE!!!";
 
     /** Base URL for the movie db */
     private static final String BASE_URL = "https://api.themoviedb.org/3/movie";

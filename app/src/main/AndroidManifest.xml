@@ -12,14 +12,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".CatalogActivity">
+        <activity
+            android:name=".CatalogActivity"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
         <activity
+            android:theme="@style/PreferencesTheme"
             android:name=".Data.PreferencesActivity"
             android:label="@string/preferences_label"
             android:parentActivityName=".CatalogActivity">
@@ -28,6 +32,7 @@
                 android:value=".CatalogActivity">
             </meta-data>
         </activity>
+
         <activity
             android:name=".DetailActivity"
             android:label="@string/detail_label"

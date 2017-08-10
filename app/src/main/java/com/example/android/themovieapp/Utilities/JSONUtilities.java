@@ -44,7 +44,7 @@ public class JSONUtilities {
             return null;
         }
 
-        // Create the base JSON; Object
+        // Create the base JSON Object
         JSONObject baseJSONObject = new JSONObject(jsonResponse);
 
         // Check if there is an error. If so, retrieve the error from the JSON response and log it
@@ -66,7 +66,7 @@ public class JSONUtilities {
         // Iterate through all movies in the JSON Array and store their properties
         for (int i = 0; i < resultsJSONArray.length(); i ++) {
             // Temporary variables that will hold the parsed results
-            String title, poster, overview, release_date;
+            String title, poster, overview, releaseDate;
             double rating;
             ArrayList<Integer> genreIds = new ArrayList<Integer>();
 
@@ -74,7 +74,7 @@ public class JSONUtilities {
             title = currentJSONMovie.getString(KEY_TITLE);
             poster = currentJSONMovie.getString(KEY_POSTER);
             overview = currentJSONMovie.getString(KEY_OVERVIEW);
-            release_date = currentJSONMovie.getString(KEY_RELEASE_DATE);
+            releaseDate = currentJSONMovie.getString(KEY_RELEASE_DATE);
             rating = currentJSONMovie.getInt(KEY_RATING);
             JSONArray genresJSONArray = currentJSONMovie.getJSONArray(KEY_GENRE_IDS);
             // Iterate through all genres ids and store them
@@ -83,7 +83,7 @@ public class JSONUtilities {
             }
 
             // Add a new movie object to the array list
-            parsedMovies.add(new Movie(title, overview, poster, release_date, rating, genreIds));
+            parsedMovies.add(new Movie(title, overview, poster, releaseDate, rating, genreIds));
         }
         return parsedMovies;
     }

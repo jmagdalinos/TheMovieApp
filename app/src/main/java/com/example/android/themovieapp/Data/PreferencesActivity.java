@@ -2,11 +2,12 @@ package com.example.android.themovieapp.Data;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.ListPreference;
-import android.preference.Preference;
-import android.preference.PreferenceFragment;
-import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.preference.ListPreference;
+import android.support.v7.preference.Preference;
+import android.support.v7.preference.PreferenceFragmentCompat;
+import android.support.v7.preference.PreferenceScreen;
+import android.view.MenuItem;
 
 import com.example.android.themovieapp.R;
 
@@ -19,53 +20,87 @@ public class PreferencesActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_preferences);
+        setContentView(R.layout.activity_settings);
+
+
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     // Fragment containing the preferences
-    public static class MoviePreferencesFragment extends PreferenceFragment implements Preference
-            .OnPreferenceChangeListener {
+    public static class MoviePreferencesFragment extends PreferenceFragmentCompat implements
+            SharedPreferences.OnSharedPreferenceChangeListener {
+
 
         @Override
-        public void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-            // Set the preference file
+        public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+            // Add the xml file containing all the preferences
             addPreferencesFromResource(R.xml.preferences);
 
-            // Select each preference, set the on change listener and set the default value
-            Preference orderBy = findPreference(getString(R.string.order_by_key));
-            bindPreferenceToValue(orderBy);
+            // Get an instance of shared preferences and preference screen
+            SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
+            PreferenceScreen preferenceScreen = getPreferenceScreen();
+
+            // Count all the present preferences
+            int prefCount = preferenceScreen.getPreferenceCount();
+
+            // Iterate through all preferences
+            for (int i = 0; i < prefCount; i++) {
+                // Get the current preference and its value
+                Preference currentPreference = preferenceScreen.getPreference(i);
+                String value = sharedPreferences.getString(currentPreference.getKey(), "");
+                // Set the summary
+                setPreferenceSummary(currentPreference, value);
+            }
         }
 
-        private void bindPreferenceToValue(Preference preference) {
-            // Set OnPreferenceChangeListener
-            preference.setOnPreferenceChangeListener(this);
-            // Get an instance of SharedPreferences
-            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences
-                    (preference.getContext());
-            // Retrieve default value
-            String preferenceString = sharedPreferences.getString(preference.getKey(), getString
-                    (R.string.order_by_default));
-            // Show value
-            onPreferenceChange(preference, preferenceString);
+        /**
+         * Method used to show the value of a preference. Can be updated for more types of
+         * preferences like list and checkbox
+         */
+        private void setPreferenceSummary(Preference preference, String value) {
+            if (preference instanceof ListPreference) {
+                ListPreference listPreference = (ListPreference) preference;
+                int listIndex = listPreference.findIndexOfValue(value);
+                listPreference.setSummary(listPreference.getEntries()[listIndex]);
+            } else {
+                // Set summary
+                preference.setSummary(value);
+            }
+        }
+
+        /**
+         * Method called by the listener that sets the summary when a value is changed
+         */
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            Preference preference = findPreference(key);
+            String value = sharedPreferences.getString(key, "");
+            setPreferenceSummary(preference, key);
+        }
+
+        /**
+         * Override onStart and onStop to register and uRegister the listener
+         */
+        @Override
+        public void onStart() {
+            super.onStart();
+            getPreferenceScreen().getSharedPreferences().registerOnSharedPreferenceChangeListener
+                    (this);
         }
 
         @Override
-        public boolean onPreferenceChange(Preference preference, Object newValue) {
-            // Store new value
-            String stringValue = newValue.toString();
-            // If this is a list preference, use values instead of keys to update summary
-            if (preference instanceof ListPreference) {
-                ListPreference listPreference = (ListPreference) preference;
-                int prefIndex = listPreference.findIndexOfValue(stringValue);
-                if (prefIndex >= 0) {
-                    CharSequence[] labels = listPreference.getEntries();
-                    preference.setSummary(labels[prefIndex]);
-                }
-            }
-            // Set new value as summary
-            preference.setSummary(stringValue);
-            return true;
+        public void onStop() {
+            super.onStop();
+            getPreferenceScreen().getSharedPreferences()
+                    .unregisterOnSharedPreferenceChangeListener(this);
         }
     }
 }
