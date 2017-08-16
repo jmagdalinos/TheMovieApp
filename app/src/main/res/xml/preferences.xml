@@ -10,4 +10,11 @@
         android:title="@string/order_by_label"
         android:entries="@array/sort_by_labels"
         android:entryValues="@array/sort_by_labels"/>
+
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:key="@string/sync_periodically_key"
+        android:title="@string/sync_periodically_label"
+        android:summaryOff="@string/sync_periodically_summary_off"
+        android:summaryOn="@string/sync_periodically_summary_on"/>
 </PreferenceScreen>

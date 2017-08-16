@@ -9,4 +9,16 @@
     <color name="gradient_start_color">#212121</color>
     <color name="gradient_center_color">#424242</color>
     <color name="gradient_end_color">#212121</color>
+
+    <!-- Secondary Titles in detail layout -->
+    <color name="detail_secondary_titles">#FFD740</color>
+
+    <!-- Divider for trailers and reviews in detail layout -->
+    <color name="detail_divider">#FFE57F</color>
+
+    <!-- Divider for recycler views -->
+    <color name="recycler_view_divider">#A18321</color>
+
+    <!-- Highlight color for selectors -->
+    <color name="selector_highlight">#4DFFC107</color>
 </resources>

@@ -7,11 +7,13 @@
     <string-array name="sort_by_labels">
         <item>@string/order_by_popularity_label</item>
         <item>@string/order_by_rating_label</item>
+        <item>@string/order_by_favourite_label</item>
     </string-array>
     <!--      Values      -->
     <string-array name="sort_by_values">
         <item>@string/order_by_popularity_value</item>
         <item>@string/order_by_rating_value</item>
+        <item>@string/order_by_favourite_value</item>
     </string-array>
 
 
@@ -41,24 +43,24 @@
         <item>37</item>
     </integer-array>
     <string-array name="genre_name">
-        <item>Action</item>
-        <item>Adventure</item>
-        <item>Animation</item>
-        <item>Comedy</item>
-        <item>Crime</item>
-        <item>Documentary</item>
-        <item>Drama</item>
-        <item>Family</item>
-        <item>Fantasy</item>
-        <item>History</item>
-        <item>Horror</item>
-        <item>Music</item>
-        <item>Mystery</item>
-        <item>Romance</item>
-        <item>Science Fiction</item>
-        <item>TV Movie</item>
-        <item>Thriller</item>
-        <item>War</item>
-        <item>Western</item>
+        <item>@string/genre_action</item>
+        <item>@string/genre_adventure</item>
+        <item>@string/genre_animation</item>
+        <item>@string/genre_comedy</item>
+        <item>@string/genre_crime</item>
+        <item>@string/genre_documentary</item>
+        <item>@string/genre_drama</item>
+        <item>@string/genre_family</item>
+        <item>@string/genre_fantasy</item>
+        <item>@string/genre_history</item>
+        <item>@string/genre_horror</item>
+        <item>@string/genre_music</item>
+        <item>@string/genre_mystery</item>
+        <item>@string/genre_romance</item>
+        <item>@string/genre_science_fiction</item>
+        <item>@string/genre_tv_movie</item>
+        <item>@string/genre_thriller</item>
+        <item>@string/genre_war</item>
+        <item>@string/genre_western</item>
     </string-array>
 </resources>

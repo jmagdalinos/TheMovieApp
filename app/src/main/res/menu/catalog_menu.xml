@@ -6,6 +6,6 @@
         android:id="@+id/action_preferences"
         android:title="@string/action_preferences"
         android:orderInCategory="1"
-        android:icon="@android:drawable/ic_menu_sort_by_size"
+        android:icon="@drawable/ic_settings_white_24dp"
         app:showAsAction="always"/>
 </menu>

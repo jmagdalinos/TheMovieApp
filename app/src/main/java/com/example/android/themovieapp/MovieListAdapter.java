@@ -1,16 +1,16 @@
 package com.example.android.themovieapp;
 
 import android.content.Context;
-import android.net.Uri;
+import android.database.Cursor;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import com.example.android.themovieapp.Data.MovieContract;
+import com.example.android.themovieapp.Utilities.MovieUtilities;
 import com.squareup.picasso.Picasso;
-
-import java.util.ArrayList;
 
 /**
  * Custom adapter that feeds the movie posters to a recycler view
@@ -18,43 +18,31 @@ import java.util.ArrayList;
 
 public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.MovieViewHolder> {
 
+    /** Cursor holding the list of movies retrieved from the movie db */
+    private Cursor mCursor;
+
+    /** Context used throughout the adapter */
+    private final Context mContext;
+
     /** ImageView that will show the movie poster */
     private ImageView mPosterImageView;
-
-    /** ArrayList holding the list of movies retrieved from the movie db */
-    private ArrayList<Movie> mMovies;
 
     /** Instance of MovieAdapterClickHandler used to when the user clicks on the poster in the
      * recycler view */
     private final MovieAdapterClickHandler mClickHandler;
 
-    /** The path for the image poster */
-    private static Uri mImageUri;
-
-    /** The current movie */
-    private static Movie mCurrentMovie;
-
-    /**
-     * Constructor for the adapter
-     */
-    public MovieListAdapter(ArrayList<Movie> movies, MovieAdapterClickHandler clickHandler) {
+    /** Constructor for the adapter */
+    public MovieListAdapter(Context context, MovieAdapterClickHandler clickHandler) {
+        mContext = context;
         mClickHandler = clickHandler;
-        mMovies = movies;
     }
 
-    /**
-     * Interface to enable click functionality to the recycler view
-     */
+    /** Interface to enable click functionality to the recycler view */
     public interface MovieAdapterClickHandler {
-        public void onPosterClick(Movie movie);
+        void onPosterClick(int movie_id);
     }
 
-    /**
-     * OnCreateViewHolder creates the custom viewholder
-     * @param viewGroup
-     * @param viewType
-     * @return
-     */
+    /** OnCreateViewHolder creates the custom viewholder */
     @Override
     public MovieViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         // Get the context from the viewGroup view
@@ -62,93 +50,79 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.Movi
         // Inflate the view using the movie_list_item as a layout
         int listItemResourceId = R.layout.movie_list_item;
         LayoutInflater inflater = LayoutInflater.from(context);
-        boolean attachToRoot = false;
-        View view = inflater.inflate(listItemResourceId, viewGroup, attachToRoot);
+        View view = inflater.inflate(listItemResourceId, viewGroup, false);
 
         // Create an instance of the viewholder
-        MovieViewHolder holder = new MovieViewHolder(view, context);
+        MovieViewHolder holder = new MovieViewHolder(view);
         return holder;
     }
 
-    /**
-     * Sets the image thumbnail using picasso
-     */
+    /** Sets the image thumbnail using picasso */
     @Override
     public void onBindViewHolder(MovieViewHolder holder, int position) {
+        // Move the cursor to the current position
+        mCursor.moveToPosition(position);
+        // Build the complete poster path
+        String completePosterPath = MovieUtilities.buildPosterPath(mCursor.getString(mCursor
+                .getColumnIndex(MovieContract.MovieEntry.COLUMN_POSTER)), MovieUtilities.FILE_SIZE_FULL);
         // Check if there is a poster
-        if (mMovies.get(position).getmPosterPathSmall().equals("no image")) {
+        if (completePosterPath.equals("no image")) {
             mPosterImageView.setImageResource(R.drawable.no_poster);
         } else {
-            Picasso.with(holder.mContext).load(mMovies.get(position).getmPosterPathLarge()).into
-                    (mPosterImageView);
+            Picasso.with(mContext).load(completePosterPath).into (mPosterImageView);
         }
     }
 
-    /**
-     * Returns the number of items in the adapter
-     */
+    /** Returns the number of items in the adapter */
     @Override
     public int getItemCount() {
-        // Check if the array list is empty
-        if (mMovies == null) return 0;
-        return mMovies.size();
+        // Check if the cursor is empty
+        if (mCursor == null) return 0;
+        return mCursor.getCount();
     }
 
-    /**
-     * The following two methods are overwritten to avoid duplication of views
-     */
+    /** The following method is overwritten to avoid duplication of views */
     @Override
     public long getItemId(int position) {
         return position;
     }
 
+    /** The following method is overwritten to avoid duplication of views */
     @Override
     public int getItemViewType(int position) {
         return position;
     }
 
-    /**
-     * Custom viewholder which implements OnClickListener to enable clicking on the viewholder
-     */
-    public class MovieViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+    /** Swaps the cursor with the one created in the catalog activity by the loader */
+    public void swapCursor(Cursor cursor) {
+        mCursor = cursor;
+        notifyDataSetChanged();
+    }
 
-        /** Context for the viewholder */
-        Context mContext;
+    /** Custom viewholder which implements OnClickListener to enable clicking on the viewholder */
+    public class MovieViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         /**
          * Constructor for the viewholder
          * @param view the view using the movie_list_item a layout
          */
-        public MovieViewHolder(View view, Context context) {
+        public MovieViewHolder(View view) {
             super(view);
-            // Get the context
-            mContext = context;
             // Find the image view that will hold the movie poster
             mPosterImageView = (ImageView) view.findViewById(R.id.im_movie_poster);
             // Set the OnClickListener to the view
             view.setOnClickListener(this);
         }
 
-        /**
-         * Method that passes the current movie to the instance of MovieAdapterClickHandler when the
-         * user has clicked on a poster
-         */
+        /** Passes the current movie_id to the instance of MovieAdapterClickHandler */
         @Override
         public void onClick(View v) {
-            // Get the current movie
-            mCurrentMovie = mMovies.get(getAdapterPosition());
+            // Move the cursor to the current position
+            mCursor.moveToPosition(getAdapterPosition());
 
-            // Pass the current movie object to the onPosterClick method
-            mClickHandler.onPosterClick(mCurrentMovie);
+            // Pass the current movie id to the onPosterClick method
+            mClickHandler.onPosterClick(mCursor.getInt(mCursor.getColumnIndex(MovieContract
+                    .MovieEntry.COLUMN_MOVIE_ID)));
         }
-    }
-
-    /**
-     * Helper method to set the data to the adapter in case we have already created one in order
-     * to avoid creating a new one
-     */
-    public void setMovieData(ArrayList<Movie> movies) {
-        mMovies = movies;
-        notifyDataSetChanged();
     }
 }

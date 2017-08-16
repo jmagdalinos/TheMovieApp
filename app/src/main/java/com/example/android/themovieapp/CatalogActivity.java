@@ -1,137 +1,140 @@
 package com.example.android.themovieapp;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Point;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.AsyncTask;
+import android.content.res.Configuration;
+import android.database.Cursor;
+import android.databinding.DataBindingUtil;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
+import com.example.android.themovieapp.Data.MovieContract.FavEntry;
+import com.example.android.themovieapp.Data.MovieContract.MovieEntry;
 import com.example.android.themovieapp.Data.PreferencesActivity;
-import com.example.android.themovieapp.Utilities.NetworkUtilities;
+import com.example.android.themovieapp.Sync.MovieSyncService;
+import com.example.android.themovieapp.Sync.MovieSyncUtilities;
+import com.example.android.themovieapp.databinding.ActivityCatalogBinding;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import static com.example.android.themovieapp.Sync.MovieSyncUtilities.SYNC_TYPE_MOVIES;
+import static com.example.android.themovieapp.Sync.MovieSyncUtilities.TAG_SYNC_TYPE;
 
-public class CatalogActivity extends AppCompatActivity implements MovieListAdapter
-        .MovieAdapterClickHandler, SharedPreferences.OnSharedPreferenceChangeListener {
+public class CatalogActivity extends AppCompatActivity implements
+        LoaderManager.LoaderCallbacks<Cursor>,
+        MovieListAdapter.MovieAdapterClickHandler,
+        SharedPreferences.OnSharedPreferenceChangeListener {
 
     /** Tag to be used for logging messages */
     private static final String TAG = CatalogActivity.class.getSimpleName();
 
-    /** Flag used to state whether a shared preference has changed or not */
-    private static boolean PREFERENCE_HAS_CHANGED = false;
+    /** Ids of the cursor loader */
+    private static final int MOVIE_LOADER_ID = 52;
 
     /** Key used when passing the current movie to the Detail Activity */
-    private static final String KEY_CURRENT_MOVIE = "current movie";
-
-    /** Key for the Movies array list in saveInstanceState */
-    private static final String STATE_MOVIES = "movies";
+    private static final String KEY_CURRENT_MOVIE_ID = "current_movie_id";
 
     /** Key for the recycler view layout list in saveInstanceState */
-    private static final String STATE_LAYOUT_MANAGER = "layout manager";
+    private static final String STATE_LAYOUT_MANAGER = "layout_manager";
 
     /** Parcelable to be used when saving the recycler view state */
     private Parcelable mLayoutManagerSavedState = null;
 
-    /** Recycler view that will show a grid of all movie posters */
-    RecyclerView mMovieRecyclerView;
+    /** Value of preference when user selects favourites */
+    private static String favouritesPreference;
+
+
+    /**
+     * Stores the user's preference regarding sorting
+     * This is used both to set the activity's title and to query the correct table
+     */
+    private static String titlePreference;
+
+    /** Data binding object */
+    ActivityCatalogBinding mBinding;
 
     /** Instance of the movie adapter */
     MovieListAdapter mMovieListAdapter;
 
-    /** ArrayList holding the data retrieved from the movie db */
-    ArrayList<Movie> mMovies;
-
-    /** Text view displaying error message */
-    TextView mErrorTextView;
-
-    /** Progress bar displaing loading progress */
-    ProgressBar mLoadingProgress;
-
-    /** Swipe refresh for the recycler view */
-    SwipeRefreshLayout mSwipeRefreshLayout;
+    /** Action bar used to set the activity title */
+    ActionBar actionBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_catalog);
+        // Set the content view
+        mBinding = DataBindingUtil.setContentView(this, R.layout.activity_catalog);
+
+        // Get the value of the favourites preference
+        favouritesPreference = getResources().getString(R.string.order_by_favourite_label);
 
         // Show home icon
-        ActionBar actionBar = this.getSupportActionBar();
+        actionBar = this.getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayShowHomeEnabled(true);
             actionBar.setIcon(R.mipmap.ic_launcher);
+
+            // Get the title of the action bar based on the user preferences
+            titlePreference = PreferencesActivity.getPreferenceForTitle(this);
+            actionBar.setTitle(titlePreference + " Movies");
         }
 
-        // Find the error text view and the loading progress bar within the layout
-        mErrorTextView = (TextView) findViewById(R.id.tv_errors);
-        mLoadingProgress = (ProgressBar) findViewById(R.id.pb_loading_progress);
-
-        // Initialize swipe refresh layout and set listener
-        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
-        mSwipeRefreshLayout.setColorSchemeColors(getColor(R.color.colorAccent));
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+        // Change the color scheme of the swipe refresh layout and set its listener
+        mBinding.swipeRefresh.setColorSchemeColors(ContextCompat.getColor(this, R.color
+                .colorAccent) );
+        mBinding.swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                // Reload data
-                mMovies.clear();
-                mMovieListAdapter.setMovieData(null);
-                mMovieRecyclerView.setAdapter(mMovieListAdapter);
-                loadMovieData();
+                refreshRecyclerView();
             }
         });
 
-        // Find the recycler view within the layout
-        mMovieRecyclerView = (RecyclerView) findViewById(R.id.rv_movie_list);
-
         // Create a Grid layout manager and assign it to the recycler view
         // The layout's columns are calculated with the calculateSpanCount method
-        GridLayoutManager layoutManager = new GridLayoutManager(CatalogActivity.this, 2);
-        mMovieRecyclerView.setLayoutManager(layoutManager);
+        GridLayoutManager layoutManager = new GridLayoutManager(CatalogActivity.this, calculateSpanCount());
+        mBinding.rvMovieList.setLayoutManager(layoutManager);
         // To improve performance, we make it so the child layout size in the RecyclerView does
         // not change
-        mMovieRecyclerView.setHasFixedSize(true);
+        mBinding.rvMovieList.setHasFixedSize(true);
 
-        // Check if this is the the first run of the activity or if it has been restored
-        if (savedInstanceState == null || !savedInstanceState.containsKey(STATE_MOVIES)) {
-            // This is the first run of the activity therefore, fetch the data from the internet
-            // Check for internet connection and the fetch data from the internet
-            loadMovieData();
-        } else {
-            // This is a restored activity therefore, get the array list and the recycler view
-            // state from the bundle
-            mMovies = savedInstanceState.getParcelableArrayList(STATE_MOVIES);
+        // Check if this is the the first run of the activity or if it has been restored.
+        if (savedInstanceState != null) {
             // Hide progress bar
-            mLoadingProgress.setVisibility(View.INVISIBLE);
+            mBinding.pbLoadingProgress.setVisibility(View.INVISIBLE);
+
             // Get the recycler view state
             mLayoutManagerSavedState = savedInstanceState.getParcelable(STATE_LAYOUT_MANAGER);
-        }
 
-        // Create a new instance of a MovieListAdapter passing the movie data as a parameter
-        mMovieListAdapter = new MovieListAdapter(mMovies, this);
+            // This is a restored activity, therefore restore the recycler view
+            mBinding.rvMovieList.getLayoutManager().onRestoreInstanceState(mLayoutManagerSavedState);
+        }
+        // Create a new instance of a MovieListAdapter
+        mMovieListAdapter = new MovieListAdapter(this, this);
 
         // Set the adapter on the recycler view
-        mMovieRecyclerView.setAdapter(mMovieListAdapter);
-        if (mLayoutManagerSavedState != null) {
-            // This is a restored activity, therefore restore the recycler view
-            mMovieRecyclerView.getLayoutManager().onRestoreInstanceState(mLayoutManagerSavedState);
-            mLayoutManagerSavedState = null;
+        mBinding.rvMovieList.setAdapter(mMovieListAdapter);
+
+        // Hide error messages and show progress bar before loading data
+        hideErrorMessage();
+
+        // Initialize the loader for the movies
+        getSupportLoaderManager().initLoader(MOVIE_LOADER_ID, null, this);
+
+        // If the user wants to see the favourites table, don't sync data
+        if (!(titlePreference.equals(favouritesPreference))) {
+            // Start the scheduler and sync data
+            MovieSyncUtilities.initializeSync(this);
         }
 
         // Register the shared preferences change listener
@@ -139,18 +142,30 @@ public class CatalogActivity extends AppCompatActivity implements MovieListAdapt
                 .registerOnSharedPreferenceChangeListener(this);
     }
 
-    /**
-     * Overwritten to check if there has been a preferences change
-     */
     @Override
-    protected void onStart() {
-        super.onStart();
-        if (PREFERENCE_HAS_CHANGED) loadMovieData();
+    protected void onSaveInstanceState(Bundle outState) {
+        // Save the recycler view states
+        saveRecyclerViewState();
+        outState.putParcelable(STATE_LAYOUT_MANAGER, mLayoutManagerSavedState);
+        super.onSaveInstanceState(outState);
     }
 
-    /**
-     * Overwritten to unregister the shared preferences listener
-     */
+    /** Saves the current state of the recycler view */
+    private void saveRecyclerViewState() {
+        // Save the state of the recycler view
+        mLayoutManagerSavedState = mBinding.rvMovieList.getLayoutManager().onSaveInstanceState();
+    }
+
+    /** Overwritten to update when in favourites and returning from detail activity */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (titlePreference.equals(favouritesPreference)) {
+            refreshRecyclerView();
+        }
+    }
+
+    /** Overwritten to unregister the shared preferences listener */
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -159,178 +174,169 @@ public class CatalogActivity extends AppCompatActivity implements MovieListAdapt
                 .unregisterOnSharedPreferenceChangeListener(this);
     }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        // Save the list of movies
-        outState.putParcelableArrayList(STATE_MOVIES, mMovies);
-        saveRecyclerViewState();
-        outState.putParcelable(STATE_LAYOUT_MANAGER, mLayoutManagerSavedState);
-        super.onSaveInstanceState(outState);
-    }
-
     /**
-     * Saves the current state of the recycler view
-     */
-    private void saveRecyclerViewState() {
-        // Save the state of the recycler view
-        mLayoutManagerSavedState = mMovieRecyclerView.getLayoutManager().onSaveInstanceState();
-    }
-
-    /**
-     * Method that responds to user click by creating an intent that starts the detail activity.
-     * Il also passes the current movie object to the detail activity
+     * Responds to user click by creating an intent that starts the detail activity.
+     * Il also passes the current movie_id to the detail activity
      */
     @Override
-    public void onPosterClick(Movie movie) {
+    public void onPosterClick(int movie_id) {
         // Save the recycler view state
         saveRecyclerViewState();
+
+        // Sync the trailers and the reviews using the intent service
+        MovieSyncUtilities.startTrailerSync(this, movie_id);
+        MovieSyncUtilities.startReviewSync(this, movie_id);
+
         // Create new intent and pass the current movie object as an extra
         Intent detailIntent = new Intent(CatalogActivity.this, DetailActivity.class);
-        detailIntent.putExtra(KEY_CURRENT_MOVIE, movie);
+        detailIntent.putExtra(KEY_CURRENT_MOVIE_ID, movie_id);
         startActivity(detailIntent);
     }
 
-    /**
-     * Method that checks for internet connection and then starts the AsyncTask to fetch the data
-     * from the internet
-     */
-    private void loadMovieData() {
-        // Get a reference to the ConnectivityManager to check state of network connectivity
-        ConnectivityManager connMgr = (ConnectivityManager)
-                getSystemService(Context.CONNECTIVITY_SERVICE);
-        // Get details on the currently active default data network
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        if (networkInfo != null && networkInfo.isConnected()) {
-            // Run AsyncTask to get the movie data
-            new FetchMovieDbData().execute();
-        } else {
-            // Show "no internet connection" error message
-            showErrorMessage(getString(R.string.error_message_no_connection));
-        }
-    }
-
-    /**
-     * Method that shows the error text view and hides the progress bar
-     */
+    /** Method that shows the error text view and hides the progress bar */
     private void showErrorMessage(String errorMessage) {
         if ((errorMessage == null)) {
             // There is no error message, so hide everything
-            mLoadingProgress.setVisibility(View.INVISIBLE);
-            mErrorTextView.setVisibility(View.INVISIBLE);
-            mSwipeRefreshLayout.setRefreshing(false);
+            mBinding.pbLoadingProgress.setVisibility(View.INVISIBLE);
+            mBinding.tvErrors.setVisibility(View.INVISIBLE);
+            mBinding.swipeRefresh.setRefreshing(false);
         } else {
-            mErrorTextView.setText(errorMessage);
-            mLoadingProgress.setVisibility(View.INVISIBLE);
-            mMovieRecyclerView.setVisibility(View.INVISIBLE);
-            mErrorTextView.setVisibility(View.VISIBLE);
-            mSwipeRefreshLayout.setRefreshing(false);
+            mBinding.pbLoadingProgress.setVisibility(View.INVISIBLE);
+            mBinding.tvErrors.setText(errorMessage);
+            mBinding.tvErrors.setVisibility(View.VISIBLE);
+            mBinding.swipeRefresh.setRefreshing(false);
         }
     }
 
-    /**
-     * Method that hides the error text view and shows the progress bar
-     */
+    /** Method that hides the error text view and shows the progress bar */
     private void hideErrorMessage() {
-        if (mSwipeRefreshLayout.isRefreshing()) {
+        if (mBinding.swipeRefresh.isRefreshing()) {
             // Swipe refresh progress bar is visible, therefore, hide the loading bar
-            mLoadingProgress.setVisibility(View.INVISIBLE);
+            mBinding.pbLoadingProgress.setVisibility(View.INVISIBLE);
         } else {
-            mLoadingProgress.setVisibility(View.VISIBLE);
+            mBinding.pbLoadingProgress.setVisibility(View.VISIBLE);
         }
-        mErrorTextView.setVisibility(View.INVISIBLE);
-        mMovieRecyclerView.setVisibility(View.VISIBLE);
+        mBinding.tvErrors.setVisibility(View.INVISIBLE);
+        mBinding.rvMovieList.setVisibility(View.VISIBLE);
     }
 
-    /**
-     * Calculates the maximum number of columns that the screen can accommodate
-     */
+    /** Returns 2 columns if the screen orientation is portrait or 3 if it is landscape */
     private int calculateSpanCount() {
-        // Calculate display width
-        Display display = getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        int displayWidth = size.x;
-        // Get the list view padding and subtract it from the screen width
-        int displayPadding = (int) getResources().getDimension(R.dimen.catalog_padding);
-        int finalDisplayWidth = displayWidth - (2 * displayPadding);
-
-        // Get poster image width and add its padding
-        int posterPadding = (int) getResources().getDimension(R.dimen.list_item_padding_left_right);
-        int posterWidth = (int) getResources().getDimension(R.dimen.list_image_width);
-        int totalPosterWidth = posterWidth + (2 * posterPadding);
-
-        // Calculate max number of spans
-        int spanCount = (int) (finalDisplayWidth / totalPosterWidth);
-
-        return spanCount;
+        // Check screen orientation and return values
+        if (getResources().getConfiguration().orientation == Configuration
+                .ORIENTATION_PORTRAIT) {
+            return 2;
+        } else {
+            return 3;
+        }
     }
 
-    /**
-     * This is called when a shared preference has changed. It changes the PREFERENCE_HAS_CHANGED
-     * flag to true
-     */
+    /** Method used to refresh the recycler view */
+    private void refreshRecyclerView() {
+        // Set the title on the action bar
+        actionBar.setTitle(titlePreference + " Movies");
+
+        // Clear the adapter
+        mMovieListAdapter.swapCursor(null);
+        mBinding.rvMovieList.setAdapter(mMovieListAdapter);
+
+        // Restart the service
+        Intent movieSyncService = new Intent(this, MovieSyncService.class);
+        movieSyncService.putExtra(TAG_SYNC_TYPE, SYNC_TYPE_MOVIES);
+        startService(movieSyncService);
+
+        // Reload the data
+        getSupportLoaderManager().restartLoader(MOVIE_LOADER_ID, null, this);
+    }
+
+    /** Refreshes the recycler view when a shared preference has */
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        PREFERENCE_HAS_CHANGED = true;
+        // Get the title from the preferences
+        titlePreference = PreferencesActivity.getPreferenceForTitle(this);
+
+        if (titlePreference.equals(favouritesPreference)) {
+            // Stop the dispatcher. Favourites are stored locally
+            MovieSyncUtilities.cancelFirebaseJobDispatcher(this);
+        } else {
+            // Start the scheduler and sync data
+            MovieSyncUtilities.initializeSync(this);
+        }
+        refreshRecyclerView();
     }
 
-    /** AsyncTask class used to fetch data from the internet and return a list of movies */
-    public class FetchMovieDbData extends AsyncTask<Void, Void, ArrayList<Movie>> {
-        @Override
-        protected void onPreExecute() {
-            // Hide error messages and show progress bar before loading data
-            hideErrorMessage();
+    /** Creates the loader for the activity */
+    @Override
+    public Loader<Cursor> onCreateLoader(int loaderId, Bundle args) {
+        Uri queryUri;
+        String[] projection;
+
+        if (titlePreference.equals(favouritesPreference)) {
+            // Build uri and projection for favourites table
+
+            // Build the uri for the loader
+            queryUri = FavEntry.CONTENT_URI;
+            // Return only the movie_id and the poster
+            projection = new String[] {
+                    FavEntry.COLUMN_MOVIE_ID,
+                    FavEntry.COLUMN_POSTER};
+        } else {
+            // Build uri and projection for movies table
+
+            // Build the uri for the loader
+            queryUri = MovieEntry.CONTENT_URI;
+            // Return only the movie_id and the poster
+            projection = new String[] {
+                    MovieEntry.COLUMN_MOVIE_ID,
+                    MovieEntry.COLUMN_POSTER};
         }
 
-        @Override
-        protected ArrayList<Movie> doInBackground(Void... params) {
-            // Get the user's preference
-            String orderByPreference = getOrderByPreference();
-            // Get the movies list
-            mMovies = NetworkUtilities.getMovieData(orderByPreference);            return mMovies;
+        switch (loaderId) {
+            case MOVIE_LOADER_ID:
+                // Return a cursor loader
+                return new CursorLoader(this,
+                        queryUri,
+                        projection,
+                        null,
+                        null,
+                        null);
+            default:
+                throw new RuntimeException("Loader" + loaderId + " not implemented");
         }
+    }
 
-        @Override
-        protected void onPostExecute(ArrayList<Movie> movies) {
-            if (movies != null) {
+    /** Called when the loader has finished */
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        switch (loader.getId()) {
+            case MOVIE_LOADER_ID:
+                // Pass the cursor to the adapter
+                mMovieListAdapter.swapCursor(data);
+
                 // Inform SwipeRefreshLayout that loading is complete so it can hide its progress bar
-                mSwipeRefreshLayout.setRefreshing(false);
-                // Hide he progress bar
-                showErrorMessage(null);
-                // Pass the data to the adapter
-                mMovieListAdapter.setMovieData(movies);
-            } else {
-                // Inform SwipeRefreshLayout that loading is complete so it can hide its progress bar
-                mSwipeRefreshLayout.setRefreshing(false);
-                // Show "an error has occurred" error message
-                showErrorMessage(getString(R.string.error_message_general));
-            }
+                mBinding.swipeRefresh.setRefreshing(false);
+
+                if (data != null && data.getCount() != 0) {
+                    // Hide he progress bar
+                    showErrorMessage(null);
+                } else {
+                    // Show "an error has occurred" error message
+                    showErrorMessage(null);
+                    // The cursor is empty. Clear the adapter
+                    mMovieListAdapter.swapCursor(null);
+                }
+                break;
         }
+
     }
 
-    private String getOrderByPreference() {
-        // Get an instance of the shared preference and get the user's order by preference
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences
-                (CatalogActivity.this);
-        String orderByPreference = sharedPreferences.getString(getString(R.string
-                .order_by_key), getString(R.string
-                .order_by_default));
-
-        // Get the orderby preference labels and values
-        String[] orderByPreferenceLabels = getResources().getStringArray(R.array
-                .sort_by_labels);
-        String[] orderByPreferenceValues = getResources().getStringArray(R.array
-                .sort_by_values);
-
-        // Get the position of the user's preference in the array
-        int arrayIndex = Arrays.asList(orderByPreferenceLabels).indexOf(orderByPreference);
-        // Get the value with the same index
-        return orderByPreferenceValues[arrayIndex];
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        // The cursor is now empty. Clear the adapter
+        mMovieListAdapter.swapCursor(null);
     }
 
-    /**
-     * Create the menu
-     */
+    /** Creates the menu */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the appropriate menu
@@ -338,9 +344,7 @@ public class CatalogActivity extends AppCompatActivity implements MovieListAdapt
         return true;
     }
 
-    /**
-     * Specify what the menu buttons do when clicked
-     */
+    /** Specifies what the menu buttons do when clicked */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();

@@ -4,14 +4,11 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
-    <!--android:paddingTop="@dimen/list_item_padding_top_bottom"-->
-    <!--android:paddingRight="@dimen/list_item_padding_left_right"-->
-    <!--android:paddingLeft="@dimen/list_item_padding_left_right"-->
 
     <ImageView
         android:id="@+id/im_movie_poster"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scaleType="center"
-        android:src="@mipmap/ic_launcher"/>
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/no_poster"/>
 </FrameLayout>
